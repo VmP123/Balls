@@ -1,0 +1,142 @@
+<html>
+	<head>
+		<script src="pixi.js"></script>
+	</head>
+	
+	<body style="margin: 0">
+		<script>
+
+			var states = {
+				MENU: 1,
+				GAMEON: 2,
+				GAMEOVER: 3
+			}
+		
+			console.log(window.innerWidth, window.innerHeight);
+		
+			var app = {
+				width: window.innerWidth,
+				height: window.innerHeight,
+				renderer: null,
+				stage: null,
+				fontStyle: { font: '24px Silkscreen' },
+				interval: 1000,
+				buttons: [],
+				sequence: [],
+				currentIndex: 0,
+				state: null
+			}
+		
+			function init() {
+				app.renderer = PIXI.autoDetectRenderer(app.width, app.height);
+				document.body.appendChild(app.renderer.view);
+				app.stage = new PIXI.Container();
+				
+				PIXI.loader
+					.add("balls", "balls.png")
+					.add("silk", "silk.fnt")
+					.load(function (loader, resources) {
+					for (i = 0; i < 4; i++) {
+						var textures = [];
+						
+						var rect = new PIXI.Rectangle(i * 100, 0, 100, 100);
+						var texture = new PIXI.Texture(resources.balls.texture, rect);
+						textures.push(texture);
+						
+						rect = new PIXI.Rectangle(i * 100, 100, 100, 100);
+						texture = new PIXI.Texture(resources.balls.texture, rect);
+						textures.push(texture);
+						
+						app.buttons.push(new PIXI.extras.MovieClip(textures));
+					}
+					
+					startGame();
+				});
+			}
+			init();
+			
+			function startGame() {
+				var button;
+				
+				var range = [0, 1, 2, 3];
+				
+				range.forEach(function (i) {
+					button = app.buttons[i];
+					button.x = Math.floor(120 * i + ((app.width / 2) - 230));
+					button.y = Math.floor(((app.height / 2) - 50));
+					button.interactive = true;
+					app.buttons[i].mousedown = function () { pushButton(i); }
+					app.buttons[i].touchstart = function () { pushButton(i); }
+					app.stage.addChild(button);
+				});
+							
+				app.state = states.GAMEON;
+			}
+			
+			function randomizeNextColor () {
+				var nextColor = Math.floor(Math.random() * 4);
+				
+				allButtonFrame(0);
+								
+				app.buttons[nextColor].gotoAndStop(1);
+				app.sequence.push(nextColor);
+			}
+			
+			function gameOver() {
+				app.state = states.GAMEOVER;
+				
+				var text = new PIXI.extras.BitmapText("" + app.currentIndex, app.fontStyle);
+				text.position.x =  Math.floor(app.width / 2) - 18;
+				text.position.y = Math.floor(app.height / 2) + 60;
+				app.stage.addChild(text);
+				
+				allButtonFrame(1);			
+			}
+			
+			function allButtonFrame(frame) {
+				for (i = 0; i < app.buttons.length ; i++) {
+					app.buttons[i].gotoAndStop(frame);
+				}
+			}
+			
+			function pushButton(index) {
+				if (app.state == states.GAMEON) {
+					if (app.sequence[app.currentIndex] == index) {				
+						if (app.sequence.length == app.currentIndex + 1) {
+							app.buttons[index].gotoAndStop(0);
+						}
+						
+						app.currentIndex++;
+					}
+					else {
+						gameOver();
+					}
+				}
+			}
+			
+			function increaseSpeed() {
+				app.interval -= 10;
+			}
+			
+			var lastUpdate = Date.now();
+			
+			function update() {
+				var now = Date.now();
+
+				if (app.state == states.GAMEON) {
+					if (now - lastUpdate > app.interval) {
+						randomizeNextColor();
+						lastUpdate = now;
+						increaseSpeed();
+					}
+				}
+				
+				app.renderer.render(app.stage);
+				requestAnimationFrame(update);
+			}
+			requestAnimationFrame(update);
+			
+		</script>
+	</body>
+		
+</html>
